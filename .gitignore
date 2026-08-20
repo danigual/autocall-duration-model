@@ -1,0 +1,10 @@
+conclusiones.txt
+exploratory_analysis.ipynb
+
+# model artifact
+artifacts/*.joblib
+
+# python packaging
+*.egg-info/
+__pycache__/
+*.pyc
