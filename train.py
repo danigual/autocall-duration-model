@@ -123,6 +123,8 @@ def main(data_dir: Path, artifacts_dir: Path) -> None:
         model.fit(X_train_feat, y_train)
         fitted[name]  = model
         metrics[name] = _evaluate(name, model, X_test_feat, y_test)
+        if hasattr(model, "best_params_"):
+            print(f"    Best params: {model.best_params_}")
 
     # --- Select best model by MAE on the test set ---
     best_name  = min(metrics, key=lambda k: metrics[k]["mae"])

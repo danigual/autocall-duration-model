@@ -119,30 +119,3 @@ def build_feature_pipeline(
     ])
 
 
-def build_pipeline(
-    daily_vol: pd.DataFrame,
-    reference: pd.DataFrame,
-    model: BaseEstimator,
-) -> Pipeline:
-    """Assemble the full feature engineering and modelling pipeline.
-
-    The returned pipeline is unfitted. Call pipeline.fit(X, y) to train.
-    When serialized with joblib, the daily_vol and reference tables are
-    embedded in the artifact so inference requires no external data files.
-
-    Args:
-        daily_vol: Realized volatility table passed to VolatilityFeatures.
-        reference: Underlyings reference table passed to VolatilityFeatures.
-        model: Any sklearn-compatible regressor (LGBMRegressor, Ridge, etc.).
-
-    Returns:
-        Unfitted sklearn Pipeline with five steps:
-        temporal -> barriers -> volatility -> selector -> model.
-    """
-    return Pipeline([
-        ("temporal",   TemporalFeatures()),
-        ("barriers",   BarrierFeatures()),
-        ("volatility", VolatilityFeatures(daily_vol, reference)),
-        ("selector",   ColumnSelector()),
-        ("model",      model),
-    ])

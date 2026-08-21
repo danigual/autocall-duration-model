@@ -110,7 +110,10 @@ def predict(rfq: RFQInput, request: Request) -> PredictionOutput:
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
-    # Durations must be positive — clip any pathological model output.
-    prediction = float(max(0.0, raw_pred))
+    # Clip to [0, nominal_duration]: a product cannot outlive its contractual
+    # life at inference time (extensions are unknown at RFQ date).
+    days_per_month = 365.25 / 12
+    nominal = (pd.Timestamp(rfq.end_date) - pd.Timestamp(rfq.start_date)).days / days_per_month
+    prediction = float(max(0.0, min(raw_pred, nominal)))
 
     return PredictionOutput(avg_duration_months=prediction)
