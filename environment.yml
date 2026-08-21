@@ -12,4 +12,7 @@ dependencies:
   - scikit-learn
   - lightgbm
   - xgboost
+  - fastapi
+  - uvicorn
+  - pydantic
   - pytest
