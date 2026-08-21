@@ -74,6 +74,7 @@ class ColumnSelector(BaseEstimator, TransformerMixin):
         Returns:
             self
         """
+        self.is_fitted_ = True
         return self
 
     def transform(self, X: pd.DataFrame) -> pd.DataFrame:
@@ -89,6 +90,33 @@ class ColumnSelector(BaseEstimator, TransformerMixin):
         for col in self.categorical_cols:
             out[col] = out[col].astype("category")
         return out
+
+
+def build_feature_pipeline(
+    daily_vol: pd.DataFrame,
+    reference: pd.DataFrame,
+) -> Pipeline:
+    """Assemble the feature engineering pipeline without a model step.
+
+    Used in training to pre-transform features once before hyperparameter
+    search, avoiding redundant transformer execution across CV folds.
+    The returned pipeline is unfitted. Call fit_transform(X) on the
+    training set and transform(X) on the test set.
+
+    Args:
+        daily_vol: Realized volatility table passed to VolatilityFeatures.
+        reference: Underlyings reference table passed to VolatilityFeatures.
+
+    Returns:
+        Unfitted sklearn Pipeline with four steps:
+        temporal -> barriers -> volatility -> selector.
+    """
+    return Pipeline([
+        ("temporal",   TemporalFeatures()),
+        ("barriers",   BarrierFeatures()),
+        ("volatility", VolatilityFeatures(daily_vol, reference)),
+        ("selector",   ColumnSelector()),
+    ])
 
 
 def build_pipeline(

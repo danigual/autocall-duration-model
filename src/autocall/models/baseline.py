@@ -1,21 +1,26 @@
 """Ridge regression baseline model.
 
 Provides a simple linear baseline to benchmark against gradient boosting.
-The pipeline wraps StandardScaler + Ridge so the returned object is a
-single sklearn-compatible estimator that can be passed to build_pipeline().
+Numeric features are scaled with StandardScaler; categorical features
+(product_type, basket_type) are one-hot encoded. Column types are detected
+automatically via make_column_selector so no column names are hardcoded here.
 """
+from sklearn.compose import ColumnTransformer, make_column_selector
 from sklearn.linear_model import Ridge
 from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
 
 def build_baseline(alpha: float = 1.0) -> Pipeline:
-    """Build a Ridge regression baseline with feature scaling.
+    """Build a Ridge regression baseline with type-aware preprocessing.
 
-    Features must be scaled before Ridge because its L2 penalty is
-    sensitive to the magnitude of coefficients, which depends on the
-    scale of each input feature. StandardScaler normalises every column
-    to zero mean and unit variance before the Ridge step sees the data.
+    StandardScaler requires numeric inputs and cannot handle pandas category
+    columns. A ColumnTransformer is used to route numeric columns through
+    StandardScaler and categorical columns through OneHotEncoder before
+    Ridge sees any data.
+
+    make_column_selector detects column types from pandas dtypes at fit time,
+    so no column names need to be hardcoded in this function.
 
     The returned pipeline is unfitted. Call pipeline.fit(X, y) to train.
     It is designed to be passed as the model argument to build_pipeline().
@@ -25,9 +30,24 @@ def build_baseline(alpha: float = 1.0) -> Pipeline:
             more aggressively. Defaults to 1.0 (sklearn default).
 
     Returns:
-        Unfitted Pipeline with two steps: scaler -> ridge.
+        Unfitted Pipeline with two steps: preprocessor -> ridge.
     """
+    preprocessor = ColumnTransformer(
+        transformers=[
+            (
+                "num",
+                StandardScaler(),
+                make_column_selector(dtype_exclude="category"),
+            ),
+            (
+                "cat",
+                OneHotEncoder(handle_unknown="ignore", sparse_output=False),
+                make_column_selector(dtype_include="category"),
+            ),
+        ]
+    )
+
     return Pipeline([
-        ("scaler", StandardScaler()),
-        ("ridge",  Ridge(alpha=alpha)),
+        ("preprocessor", preprocessor),
+        ("ridge",        Ridge(alpha=alpha)),
     ])

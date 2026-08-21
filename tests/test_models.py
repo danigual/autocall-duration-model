@@ -9,10 +9,10 @@ import numpy as np
 import pandas as pd
 import pytest
 from lightgbm import LGBMRegressor
+from sklearn.compose import ColumnTransformer
 from sklearn.linear_model import Ridge
 from sklearn.model_selection import RandomizedSearchCV, TimeSeriesSplit
 from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import StandardScaler
 from xgboost import XGBRegressor
 
 from autocall.models.baseline import build_baseline
@@ -36,6 +36,26 @@ def numeric_data() -> tuple[pd.DataFrame, pd.Series]:
     return X, y
 
 
+@pytest.fixture
+def mixed_data() -> tuple[pd.DataFrame, pd.Series]:
+    """Synthetic dataset with numeric and category columns.
+
+    Mirrors the output of ColumnSelector: numeric features plus
+    product_type and basket_type as pandas category dtype.
+    """
+    rng = np.random.default_rng(seed=0)
+    n = 50
+    X = pd.DataFrame({
+        "nominal_duration_months": rng.uniform(6, 36, size=n),
+        "vol_spread":              rng.normal(0, 0.1, size=n),
+        "lockup_ratio":            rng.uniform(0, 1, size=n),
+        "product_type":            pd.Categorical(["Snowball", "Phoenix"] * 25),
+        "basket_type":             pd.Categorical(["worst_of", "single"] * 25),
+    })
+    y = pd.Series(rng.uniform(1, 36, size=n), name="avg_duration_months")
+    return X, y
+
+
 class TestBuildBaseline:
     """Unit tests for the build_baseline factory function."""
 
@@ -44,16 +64,16 @@ class TestBuildBaseline:
         assert isinstance(build_baseline(), Pipeline)
 
     def test_pipeline_has_two_steps(self):
-        """Pipeline must contain exactly two steps: scaler and ridge."""
+        """Pipeline must contain exactly two steps: preprocessor and ridge."""
         pipe = build_baseline()
         assert len(pipe.steps) == 2
 
-    def test_first_step_is_standard_scaler(self):
-        """First step must be named 'scaler' and be a StandardScaler."""
+    def test_first_step_is_column_transformer(self):
+        """First step must be named 'preprocessor' and be a ColumnTransformer."""
         pipe = build_baseline()
         name, estimator = pipe.steps[0]
-        assert name == "scaler"
-        assert isinstance(estimator, StandardScaler)
+        assert name == "preprocessor"
+        assert isinstance(estimator, ColumnTransformer)
 
     def test_second_step_is_ridge(self):
         """Second step must be named 'ridge' and be a Ridge estimator."""
@@ -71,6 +91,12 @@ class TestBuildBaseline:
         """Pipeline must fit on a numeric DataFrame without raising."""
         X, y = numeric_data
         build_baseline().fit(X, y)
+
+    def test_handles_category_columns(self, mixed_data):
+        """Pipeline must fit and predict when category dtype columns are present."""
+        X, y = mixed_data
+        pipe = build_baseline().fit(X, y)
+        assert np.all(np.isfinite(pipe.predict(X)))
 
     def test_predict_returns_array(self, numeric_data):
         """predict() must return a numpy array of the same length as X."""

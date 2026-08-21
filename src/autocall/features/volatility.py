@@ -47,6 +47,7 @@ class VolatilityFeatures(BaseEstimator, TransformerMixin):
         Returns:
             self
         """
+        self.is_fitted_ = True
         return self
 
     def transform(self, X: pd.DataFrame) -> pd.DataFrame:

@@ -16,8 +16,8 @@ from xgboost import XGBRegressor
 
 
 def build_lgbm(
-    n_iter: int = 50,
-    n_splits: int = 5,
+    n_iter: int = 20,
+    n_splits: int = 3,
     random_state: int = 42,
 ) -> RandomizedSearchCV:
     """Build a LightGBM regressor with randomized hyperparameter search.
@@ -42,10 +42,10 @@ def build_lgbm(
     )
 
     param_dist = {
-        "n_estimators":      randint(100, 1001),
+        "n_estimators":      randint(100, 401),
         "learning_rate":     loguniform(0.01, 0.3),
         "num_leaves":        randint(15, 128),
-        "min_child_samples": randint(10, 100),
+        "min_child_samples": randint(20, 100),
         "subsample":         uniform(0.6, 0.4),
         "colsample_bytree":  uniform(0.6, 0.4),
     }
@@ -57,14 +57,15 @@ def build_lgbm(
         cv=TimeSeriesSplit(n_splits=n_splits),
         scoring="neg_mean_absolute_error",
         random_state=random_state,
-        n_jobs=-1,
+        n_jobs=1,
         refit=True,
+        verbose=1,
     )
 
 
 def build_xgb(
-    n_iter: int = 50,
-    n_splits: int = 5,
+    n_iter: int = 20,
+    n_splits: int = 3,
     random_state: int = 42,
 ) -> RandomizedSearchCV:
     """Build an XGBoost regressor with randomized hyperparameter search.
@@ -89,13 +90,13 @@ def build_xgb(
     )
 
     param_dist = {
-        "n_estimators":    randint(100, 1001),
-        "learning_rate":   loguniform(0.01, 0.3),
-        "max_depth":       randint(3, 10),
+        "n_estimators":     randint(100, 401),
+        "learning_rate":    loguniform(0.01, 0.3),
+        "max_depth":        randint(3, 10),
         "min_child_weight": randint(1, 20),
-        "subsample":       uniform(0.6, 0.4),
+        "subsample":        uniform(0.6, 0.4),
         "colsample_bytree": uniform(0.6, 0.4),
-        "reg_lambda":      loguniform(0.1, 10.0),
+        "reg_lambda":       loguniform(0.1, 10.0),
     }
 
     return RandomizedSearchCV(
@@ -105,6 +106,7 @@ def build_xgb(
         cv=TimeSeriesSplit(n_splits=n_splits),
         scoring="neg_mean_absolute_error",
         random_state=random_state,
-        n_jobs=-1,
+        n_jobs=1,
         refit=True,
+        verbose=1,
     )
