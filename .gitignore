@@ -1,6 +1,10 @@
 conclusiones.txt
 exploratory_analysis.ipynb
 
+# data files and challenge statement (local only)
+*.csv
+*.pdf
+
 # model artifact
 artifacts/*.joblib
 
